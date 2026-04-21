@@ -593,6 +593,189 @@
         0%, 100% { stroke-opacity: 0.26; }
         50% { stroke-opacity: 0.68; }
       }
+
+      /* Small-phone responsive tune (iPhone viewport ratio) */
+      @media (max-width: 430px), (max-height: 820px) {
+        .top-wrap {
+          padding: calc(env(safe-area-inset-top) + 6px) 10px 0;
+        }
+
+        .route-bar {
+          border-radius: 22px 22px 14px 14px;
+          padding: 10px 10px 9px;
+        }
+
+        .search-row {
+          grid-template-columns: 30px 1fr 24px;
+          gap: 8px;
+        }
+
+        .icon-btn {
+          width: 30px;
+          height: 30px;
+          font-size: 18px;
+        }
+
+        .swap-btn {
+          width: 24px;
+          height: 24px;
+          font-size: 18px;
+        }
+
+        .search-stack {
+          gap: 6px;
+        }
+
+        .search-field {
+          min-height: 40px;
+          border-radius: 12px;
+          padding: 0 13px;
+          font-size: 14px;
+        }
+
+        .transport-tabs {
+          gap: 8px;
+          padding: 10px 8px 0;
+        }
+
+        .transport-tab {
+          height: 36px;
+          font-size: 14px;
+        }
+
+        .floating-chip {
+          left: 12px;
+          top: calc(env(safe-area-inset-top) + 160px);
+          min-height: 44px;
+          padding: 0 14px;
+          border-radius: 999px;
+          font-size: 13px;
+        }
+
+        .floating-left-tools {
+          left: 10px;
+          bottom: calc(env(safe-area-inset-bottom) + 165px);
+          gap: 8px;
+        }
+
+        .tool-fab {
+          width: 48px;
+          height: 48px;
+          font-size: 22px;
+        }
+
+        .vehicle-pill {
+          right: 10px;
+          bottom: calc(env(safe-area-inset-bottom) + 188px);
+          min-height: 44px;
+          padding: 0 12px;
+          font-size: 14px;
+          border-radius: 14px;
+        }
+
+        .helper-toast {
+          bottom: calc(env(safe-area-inset-bottom) + 146px);
+          font-size: 13px;
+          padding: 8px 12px;
+        }
+
+        .sheet {
+          margin: 0 0 6px;
+          padding: 8px 10px 0;
+        }
+
+        .sheet-card {
+          border-radius: 22px 22px 0 0;
+        }
+
+        .sheet-handle {
+          width: 36px;
+          height: 4px;
+          margin: 8px auto 8px;
+        }
+
+        .state-panel {
+          padding: 0 12px 12px;
+        }
+
+        .route-options {
+          gap: 9px;
+          padding: 0 10px 12px;
+        }
+
+        .route-card {
+          min-width: 150px;
+          border-radius: 16px;
+          padding: 12px;
+        }
+
+        .small-btn {
+          min-width: 46px;
+          height: 32px;
+          border-radius: 10px;
+          font-size: 13px;
+        }
+
+        .route-title {
+          font-size: 13px;
+        }
+
+        .route-time {
+          font-size: 44px;
+          margin-bottom: 8px;
+        }
+
+        .route-desc {
+          font-size: 13px;
+        }
+
+        .sheet-actions {
+          grid-template-columns: 52px 1fr;
+          gap: 10px;
+          padding: 0 10px 12px;
+        }
+
+        .history-btn {
+          border-radius: 14px;
+          font-size: 24px;
+        }
+
+        .primary-btn {
+          min-height: 50px;
+          border-radius: 14px;
+          font-size: 16px;
+        }
+
+        .inline-btn,
+        .secondary-btn {
+          min-height: 46px;
+          border-radius: 14px;
+          font-size: 15px;
+        }
+
+        .sheet-title {
+          font-size: 19px;
+          margin-bottom: 6px;
+        }
+
+        .sheet-sub {
+          font-size: 14px;
+          margin-bottom: 12px;
+        }
+
+        .voice-button {
+          width: 84px;
+          height: 84px;
+          font-size: 36px;
+          box-shadow: 0 0 0 12px rgba(10, 102, 255, 0.08);
+        }
+
+        textarea {
+          min-height: 92px;
+          font-size: 14px;
+        }
+      }
+
     </style>
   </head>
   <body>
