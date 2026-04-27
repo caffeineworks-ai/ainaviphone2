@@ -200,28 +200,6 @@
         color: #f45a45;
       }
 
-      .floating-chip {
-        position: absolute;
-        left: 18px;
-        top: calc(env(safe-area-inset-top) + 198px);
-        z-index: 22;
-        background: rgba(255, 255, 255, 0.94);
-        color: #303540;
-        min-height: 54px;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 0 18px;
-        border-radius: 999px;
-        box-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
-        font-size: 15px;
-        font-weight: 700;
-      }
-
-      .floating-chip.hidden {
-        display: none;
-      }
-
       .floating-left-tools {
         position: absolute;
         left: 16px;
@@ -695,15 +673,6 @@
           font-size: 14px;
         }
 
-        .floating-chip {
-          left: 12px;
-          top: calc(env(safe-area-inset-top) + 160px);
-          min-height: 44px;
-          padding: 0 14px;
-          border-radius: 999px;
-          font-size: 13px;
-        }
-
         .floating-left-tools {
           left: 10px;
           bottom: calc(env(safe-area-inset-bottom) + 165px);
@@ -877,8 +846,6 @@
         </section>
       </div>
 
-      <div class="floating-chip" id="promoChip">🪙 만보기로 걷고 5만원 받으세요</div>
-
       <div class="floating-left-tools" id="mapTools">
         <button class="tool-fab">★</button>
         <button class="tool-fab">◫</button>
@@ -923,10 +890,14 @@
 
             <div class="state-panel" id="state-select">
               <h3 class="sheet-title">선택한 구간을 태깅할까요?</h3>
-              <p class="sheet-sub">우측의 AI 버튼으로 태깅 모드를 켠 뒤, 시작점과 끝점을 찍으면 특정 구간만 따로 기억할 수 있습니다.</p>
+              <p class="sheet-sub">우측의 AI 버튼으로 개인화 모드를 켠 뒤, 지도 위를 문질러 영역을 그리면 AI가 보정해 해당 영역을 태깅합니다.</p>
               <div class="guide-card">
                 <strong style="display:block; margin-bottom:6px; font-size:16px; color:#22262f;">현재 선택 구간</strong>
                 <div id="selectedSegmentText" style="font-size:15px; color:#5f6673; line-height:1.5;">한남 IC 주변 구간</div>
+              </div>
+              <div class="dual-actions" style="margin-bottom:10px;">
+                <button class="inline-btn" id="avoidModeBtn">회피 구간</button>
+                <button class="secondary-btn" id="preferModeBtn">선호 구간</button>
               </div>
               <div class="dual-actions">
                 <button class="inline-btn" id="selectCancelBtn">취소</button>
@@ -1009,6 +980,13 @@
         personalizationMode: false,
         userLocation: null,
         destinationLocation: null,
+        brushLatLngs: [],
+        brushLine: null,
+        correctedArea: null,
+        selectedCenter: null,
+        selectedRadiusM: 0,
+        tagMode: "avoid",
+        isBrushing: false,
       };
 
       const map = L.map("map", { zoomControl: false, doubleClickZoom: false }).setView(DEFAULT_FALLBACK, 16);
@@ -1040,10 +1018,11 @@
       const delayChip = document.getElementById("delayChip");
       const ruleDetailText = document.getElementById("ruleDetailText");
       const doneText = document.getElementById("doneText");
-      const promoChip = document.getElementById("promoChip");
       const mapTools = document.getElementById("mapTools");
       const vehiclePill = document.getElementById("vehiclePill");
       const aiTagBtn = document.getElementById("aiTagBtn");
+      const avoidModeBtn = document.getElementById("avoidModeBtn");
+      const preferModeBtn = document.getElementById("preferModeBtn");
 
       const routeTimeEls = Array.from(document.querySelectorAll(".route-time"));
       const routeDescEls = Array.from(document.querySelectorAll(".route-desc"));
@@ -1077,7 +1056,6 @@
         const dimmed = [UI_STATE.SELECT, UI_STATE.INPUT, UI_STATE.CONFIRM, UI_STATE.DONE].includes(stateName);
         mapDim.classList.toggle("active", dimmed);
 
-        promoChip.classList.toggle("hidden", stateName !== UI_STATE.ROUTE);
         mapTools.classList.toggle("hidden", stateName !== UI_STATE.ROUTE);
         vehiclePill.classList.toggle("hidden", stateName !== UI_STATE.ROUTE);
         const shouldShowTagButton = stateName === UI_STATE.ROUTE && Boolean(state.baseRoute?.length);
@@ -1141,17 +1119,27 @@
       function resetSelection(keepMode = false) {
         state.selectedIndexes = [];
         state.selectedLatLngs = [];
+        state.selectedCenter = null;
+        state.selectedRadiusM = 0;
+        state.brushLatLngs = [];
         state.selectedMarkers.forEach((m) => map.removeLayer(m));
         state.selectedMarkers = [];
         if (state.selectionLine) map.removeLayer(state.selectionLine);
         if (state.selectionGlowLine) map.removeLayer(state.selectionGlowLine);
+        if (state.brushLine) map.removeLayer(state.brushLine);
+        if (state.correctedArea) map.removeLayer(state.correctedArea);
         state.selectionLine = null;
         state.selectionGlowLine = null;
+        state.brushLine = null;
+        state.correctedArea = null;
         if (!keepMode) state.personalizationMode = false;
       }
 
       function describeSelectedSegment(chunk) {
-        return `선택 구간 · 약 ${Math.max(180, Math.round(chunk.length * 12))}m`;
+        if (state.tagMode === "prefer") {
+          return `AI 보정 선호 영역 · 반경 약 ${Math.round(state.selectedRadiusM)}m`;
+        }
+        return `AI 보정 회피 영역 · 약 ${Math.max(180, Math.round(chunk.length * 12))}m`;
       }
 
       function updateRouteCards(route) {
@@ -1212,60 +1200,117 @@
         }
       }
 
-      function highlightSelection() {
-        if (state.selectedIndexes.length < 2) return;
-        const [a, b] = [...state.selectedIndexes].sort((x, y) => x - y);
-        const chunk = state.baseRoute.slice(a, b + 1);
-        state.selectedLatLngs = chunk;
+      function getBrushLatLng(event) {
+        if (event.latlng) return event.latlng;
+        if (event.touches?.length) return map.mouseEventToLatLng(event.touches[0]);
+        if (event.changedTouches?.length) return map.mouseEventToLatLng(event.changedTouches[0]);
+        return null;
+      }
 
-        if (state.selectionGlowLine) map.removeLayer(state.selectionGlowLine);
-        if (state.selectionLine) map.removeLayer(state.selectionLine);
+      function computeBrushArea(points) {
+        const centerLat = points.reduce((a, p) => a + p[0], 0) / points.length;
+        const centerLng = points.reduce((a, p) => a + p[1], 0) / points.length;
+        const center = [centerLat, centerLng];
+        let radius = 40;
+        points.forEach((p) => {
+          const d = map.distance(center, p);
+          if (d > radius) radius = d;
+        });
+        return { center, radius: Math.max(35, Math.min(radius * 1.1, 300)) };
+      }
 
-        state.selectionGlowLine = L.polyline(chunk, {
-          color: "#ff9dcc",
-          weight: 18,
-          opacity: 0.42,
-          className: "selected-glow-outer",
+      function highlightSelectionFromBrush() {
+        if (!state.brushLatLngs.length) return;
+        const { center, radius } = computeBrushArea(state.brushLatLngs);
+        state.selectedCenter = center;
+        state.selectedRadiusM = radius;
+
+        if (state.correctedArea) map.removeLayer(state.correctedArea);
+        state.correctedArea = L.circle(center, {
+          radius,
+          color: state.tagMode === "prefer" ? "#21c16b" : "#ef5da8",
+          weight: 3,
+          fillColor: state.tagMode === "prefer" ? "#21c16b" : "#ef5da8",
+          fillOpacity: 0.2,
         }).addTo(map);
 
-        state.selectionLine = L.polyline(chunk, {
-          color: "#ef5da8",
-          weight: 8,
-          opacity: 0.98,
-          className: "selected-glow-core",
-        }).addTo(map);
+        if (state.baseRoute?.length) {
+          const chunk = state.baseRoute.filter((pt) => map.distance(center, pt) <= radius);
+          state.selectedLatLngs = chunk;
 
-        selectedSegmentText.textContent = describeSelectedSegment(chunk);
+          if (state.selectionGlowLine) map.removeLayer(state.selectionGlowLine);
+          if (state.selectionLine) map.removeLayer(state.selectionLine);
+
+          if (chunk.length >= 2) {
+            state.selectionGlowLine = L.polyline(chunk, {
+              color: state.tagMode === "prefer" ? "#79f3b2" : "#ff9dcc",
+              weight: 18,
+              opacity: 0.42,
+              className: "selected-glow-outer",
+            }).addTo(map);
+
+            state.selectionLine = L.polyline(chunk, {
+              color: state.tagMode === "prefer" ? "#21c16b" : "#ef5da8",
+              weight: 8,
+              opacity: 0.98,
+              className: "selected-glow-core",
+            }).addTo(map);
+          }
+        }
+
+        selectedSegmentText.textContent = describeSelectedSegment(state.selectedLatLngs);
         setUI(UI_STATE.SELECT);
-        showToast("선택한 구간을 AI 태깅 대상으로 지정했어요.");
+        showToast("문질러 선택한 영역을 AI가 보정해서 태깅 대상으로 잡았어요.");
       }
 
       function activatePersonalizationMode() {
-        if (!state.baseRoute?.length) {
+        if (!state.destinationLocation) {
           showToast("먼저 목적지를 검색해 경로를 만들어 주세요.", 2200);
           return;
         }
         state.personalizationMode = true;
         resetSelection(true);
         setUI(UI_STATE.ROUTE);
-        showToast("이제 경로 위에서 시작점과 끝점을 차례로 탭하세요.", 2600);
+        showToast("개인화 모드 ON: 지도 위를 문질러 원하는 영역을 그려 주세요.", 2600);
       }
 
-      map.on("click", (e) => {
+      function startBrush(event) {
         if (!state.personalizationMode) return;
-        if (!state.baseRoute?.length) return;
-        if (state.selectedIndexes.length >= 2) return;
+        const latlng = getBrushLatLng(event);
+        if (!latlng) return;
+        state.isBrushing = true;
+        state.brushLatLngs = [[latlng.lat, latlng.lng]];
+        if (state.brushLine) map.removeLayer(state.brushLine);
+        state.brushLine = L.polyline(state.brushLatLngs, {
+          color: "#8fb7ff",
+          weight: 10,
+          opacity: 0.75,
+          lineCap: "round",
+          lineJoin: "round",
+        }).addTo(map);
+      }
 
-        const idx = nearestRouteIndex(e.latlng);
-        state.selectedIndexes.push(idx);
-        addFlag(state.baseRoute[idx]);
+      function moveBrush(event) {
+        if (!state.isBrushing) return;
+        const latlng = getBrushLatLng(event);
+        if (!latlng) return;
+        state.brushLatLngs.push([latlng.lat, latlng.lng]);
+        if (state.brushLine) state.brushLine.setLatLngs(state.brushLatLngs);
+      }
 
-        if (state.selectedIndexes.length === 1) {
-          showToast("시작점을 잡았어요. 이제 끝점을 탭하세요.", 1800);
-        } else {
-          highlightSelection();
-        }
-      });
+      function endBrush() {
+        if (!state.isBrushing) return;
+        state.isBrushing = false;
+        map.dragging.enable();
+        highlightSelectionFromBrush();
+      }
+
+      map.on("mousedown", startBrush);
+      map.on("mousemove", moveBrush);
+      map.on("mouseup", endBrush);
+      map.on("touchstart", startBrush);
+      map.on("touchmove", moveBrush);
+      map.on("touchend", endBrush);
 
       function parseUserIntent(text) {
         const delayMatch = text.match(/(\d+)\s*분/);
@@ -1288,10 +1333,11 @@
       }
 
       function renderRule(intent) {
-        summaryText.textContent = `${intent.destination} 갈 때 - 도착 시간 차이가 ${intent.delay}분 이하라면 이 구간은 피하고 ${intent.action}합니다.`;
-        reasonChip.textContent = intent.reason;
-        delayChip.textContent = `${intent.delay}분 이하 우회 허용`;
-        ruleDetailText.textContent = `목적지가 ${intent.destination}일 때, 해당 구간 회피 규칙을 적용합니다. 예상 도착 시간이 ${intent.delay}분 이상 차이 나면 기존 경로를 유지합니다.`;
+        const modeText = state.tagMode === "prefer" ? "우선 통과" : "회피";
+        summaryText.textContent = `${intent.destination} 갈 때 - 도착 시간 차이가 ${intent.delay}분 이하라면 AI 보정 영역을 ${modeText}하도록 반영합니다.`;
+        reasonChip.textContent = `${intent.reason} · ${modeText}`;
+        delayChip.textContent = `${intent.delay}분 이하 개인화 적용`;
+        ruleDetailText.textContent = `목적지가 ${intent.destination}일 때, 선택한 AI 보정 영역을 ${modeText} 규칙으로 반영합니다.`;
         doneText.textContent = summaryText.textContent;
       }
 
@@ -1320,21 +1366,23 @@
       }
 
       async function applyReroute() {
-        if (!state.selectedLatLngs.length || !state.userLocation || !state.destinationLocation) return;
-        const detour = calcDetourWaypoint(state.selectedLatLngs);
+        if (!state.userLocation || !state.destinationLocation || !state.selectedCenter) return;
         try {
-          const reroute = await fetchRoute([state.userLocation, detour, state.destinationLocation]);
+          const waypoints = state.tagMode === "prefer"
+            ? [state.userLocation, state.selectedCenter, state.destinationLocation]
+            : [state.userLocation, calcDetourWaypoint(state.selectedLatLngs.length ? state.selectedLatLngs : [state.selectedCenter]), state.destinationLocation];
+          const reroute = await fetchRoute(waypoints);
           const latlngs = reroute.geometry.coordinates.map((c) => [c[1], c[0]]);
           if (state.rerouteLine) map.removeLayer(state.rerouteLine);
           state.rerouteLine = L.polyline(latlngs, {
-            color: "#21c16b",
+            color: state.tagMode === "prefer" ? "#21c16b" : "#ef5da8",
             weight: 7,
             opacity: 0.92,
             className: "reroute-line",
           }).addTo(map);
-          showToast("태깅을 반영한 우회 경로를 표시했어요.", 2200);
+          showToast(state.tagMode === "prefer" ? "선호 구간을 반영한 경로를 표시했어요." : "회피 구간을 반영한 우회 경로를 표시했어요.", 2200);
         } catch (e) {
-          showToast("우회 경로 계산에 실패했어요. 기본 경로를 유지합니다.", 2200);
+          showToast("개인화 경로 계산에 실패했어요. 기본 경로를 유지합니다.", 2200);
         }
       }
 
@@ -1424,6 +1472,14 @@
         );
       }
 
+      function updateTagModeUI() {
+        const avoidActive = state.tagMode === "avoid";
+        avoidModeBtn.classList.toggle("secondary-btn", avoidActive);
+        avoidModeBtn.classList.toggle("inline-btn", !avoidActive);
+        preferModeBtn.classList.toggle("secondary-btn", !avoidActive);
+        preferModeBtn.classList.toggle("inline-btn", avoidActive);
+      }
+
       document.getElementById("startGuideBtn").addEventListener("click", () => {
         if (!state.baseRoute?.length) {
           showToast("목적지를 검색해 경로를 먼저 만들어 주세요.", 2200);
@@ -1434,6 +1490,7 @@
 
       document.getElementById("selectCancelBtn").addEventListener("click", () => {
         resetSelection();
+        map.dragging.enable();
         setUI(UI_STATE.ROUTE);
         showToast("구간 선택을 취소했어요.");
       });
@@ -1462,11 +1519,11 @@
       });
 
       document.getElementById("saveTagBtn").addEventListener("click", () => {
-        if (!state.activeIntent || !state.selectedLatLngs.length) {
+        if (!state.activeIntent || !state.selectedCenter) {
           showToast("먼저 구간과 태그 내용을 확인해 주세요.");
           return;
         }
-        const midpoint = state.selectedLatLngs[Math.floor(state.selectedLatLngs.length / 2)];
+        const midpoint = state.selectedCenter;
         addTaggedMarker(midpoint);
         setUI(UI_STATE.DONE);
       });
@@ -1474,6 +1531,7 @@
       document.getElementById("stayRouteBtn").addEventListener("click", () => {
         setUI(UI_STATE.ROUTE);
         resetSelection();
+        map.dragging.enable();
         speechText.value = "";
         state.activeIntent = null;
         showToast("태깅만 저장하고 기본 경로를 유지합니다.");
@@ -1483,8 +1541,21 @@
         await applyReroute();
         setUI(UI_STATE.ROUTE);
         resetSelection();
+        map.dragging.enable();
         speechText.value = "";
         state.activeIntent = null;
+      });
+
+      avoidModeBtn.addEventListener("click", () => {
+        state.tagMode = "avoid";
+        updateTagModeUI();
+        if (state.brushLatLngs.length) highlightSelectionFromBrush();
+      });
+
+      preferModeBtn.addEventListener("click", () => {
+        state.tagMode = "prefer";
+        updateTagModeUI();
+        if (state.brushLatLngs.length) highlightSelectionFromBrush();
       });
 
       document.getElementById("voiceBtn").addEventListener("click", () => {
@@ -1527,15 +1598,10 @@
       });
 
       setUI(UI_STATE.ROUTE);
+      updateTagModeUI();
       clearCurrentRoute();
       requestCurrentLocation(true);
-      showToast("현재 위치를 불러왔어요. 목적지 검색 후 우측 AI 버튼으로 태깅을 시작���세요.", 2800);
+      showToast("현재 위치를 불러왔어요. 목적지 검색 후 우측 AI 버튼으로 태깅을 시작하세요.", 2800);
     </script>
-
-    <!-- Vercel Web Analytics -->
-    <script>
-      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
-    </script>
-    <script defer src="/_vercel/insights/script.js"></script>
   </body>
 </html>
