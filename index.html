@@ -262,6 +262,28 @@
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
       }
 
+      .ai-tag-fab {
+        position: absolute;
+        right: 16px;
+        bottom: calc(env(safe-area-inset-bottom) + 290px);
+        z-index: 25;
+        width: 64px;
+        height: 64px;
+        border: none;
+        border-radius: 50%;
+        background: radial-gradient(circle at 35% 30%, #ffffff 0%, #e9f1ff 35%, #0a66ff 100%);
+        color: #0a66ff;
+        font-size: 14px;
+        font-weight: 900;
+        letter-spacing: 0.01em;
+        box-shadow: 0 10px 26px rgba(10, 102, 255, 0.36);
+        cursor: pointer;
+      }
+
+      .ai-tag-fab.hidden {
+        display: none;
+      }
+
       .bottom-area {
         position: absolute;
         left: 0;
@@ -703,6 +725,14 @@
           border-radius: 14px;
         }
 
+        .ai-tag-fab {
+          right: 10px;
+          bottom: calc(env(safe-area-inset-bottom) + 244px);
+          width: 52px;
+          height: 52px;
+          font-size: 12px;
+        }
+
         .helper-toast {
           bottom: calc(env(safe-area-inset-bottom) + 146px);
           font-size: 13px;
@@ -856,6 +886,7 @@
       </div>
 
       <div class="vehicle-pill" id="vehiclePill">🚘 미등록 ˅</div>
+      <button class="ai-tag-fab hidden" id="aiTagBtn">🌀AI</button>
 
       <div class="helper-toast" id="helperToast"></div>
 
@@ -892,7 +923,7 @@
 
             <div class="state-panel" id="state-select">
               <h3 class="sheet-title">선택한 구간을 태깅할까요?</h3>
-              <p class="sheet-sub">경로를 두 번 탭한 뒤, 시작점과 끝점을 찍으면 특정 구간만 따로 기억할 수 있습니다.</p>
+              <p class="sheet-sub">우측의 AI 버튼으로 태깅 모드를 켠 뒤, 시작점과 끝점을 찍으면 특정 구간만 따로 기억할 수 있습니다.</p>
               <div class="guide-card">
                 <strong style="display:block; margin-bottom:6px; font-size:16px; color:#22262f;">현재 선택 구간</strong>
                 <div id="selectedSegmentText" style="font-size:15px; color:#5f6673; line-height:1.5;">한남 IC 주변 구간</div>
@@ -1012,6 +1043,7 @@
       const promoChip = document.getElementById("promoChip");
       const mapTools = document.getElementById("mapTools");
       const vehiclePill = document.getElementById("vehiclePill");
+      const aiTagBtn = document.getElementById("aiTagBtn");
 
       const routeTimeEls = Array.from(document.querySelectorAll(".route-time"));
       const routeDescEls = Array.from(document.querySelectorAll(".route-desc"));
@@ -1021,7 +1053,6 @@
       let userMarker;
       let accuracyCircle;
       let destinationMarker;
-      let lastTapTs = 0;
       let toastTimer;
 
       function showToast(message, time = 1800) {
@@ -1049,6 +1080,8 @@
         promoChip.classList.toggle("hidden", stateName !== UI_STATE.ROUTE);
         mapTools.classList.toggle("hidden", stateName !== UI_STATE.ROUTE);
         vehiclePill.classList.toggle("hidden", stateName !== UI_STATE.ROUTE);
+        const shouldShowTagButton = stateName === UI_STATE.ROUTE && Boolean(state.baseRoute?.length);
+        aiTagBtn.classList.toggle("hidden", !shouldShowTagButton);
       }
 
       function toLngLat(latlng) {
@@ -1218,18 +1251,6 @@
         showToast("이제 경로 위에서 시작점과 끝점을 차례로 탭하세요.", 2600);
       }
 
-      function wireRouteInteraction(polyline) {
-        polyline.on("click", () => {
-          const now = Date.now();
-          if (now - lastTapTs <= 320) {
-            activatePersonalizationMode();
-            lastTapTs = 0;
-            return;
-          }
-          lastTapTs = now;
-        });
-      }
-
       map.on("click", (e) => {
         if (!state.personalizationMode) return;
         if (!state.baseRoute?.length) return;
@@ -1364,10 +1385,9 @@
             className: "route-hit-target",
           }).addTo(map);
 
-          wireRouteInteraction(routeHitLine);
           updateRouteCards(route);
           setUI(UI_STATE.ROUTE);
-          showToast("경로를 만들었습니다. 경로를 두 번 탭하면 구간 태깅이 열립니다.", 2400);
+          showToast("경로를 만들었습니다. 우측 AI 버튼으로 구간 태깅 모드를 켤 수 있어요.", 2400);
         } catch (e) {
           showToast("목적지 검색 또는 경로 생성에 실패했습니다.", 2400);
         }
@@ -1403,7 +1423,7 @@
           showToast("목적지를 검색해 경로를 먼저 만들어 주세요.", 2200);
           return;
         }
-        showToast("안내를 시작합니다. 경로를 두 번 탭하면 구간 태깅 모드가 열립니다.", 2600);
+        showToast("안내를 시작합니다. 우측 AI 버튼으로 구간 태깅 모드를 켤 수 있어요.", 2600);
       });
 
       document.getElementById("selectCancelBtn").addEventListener("click", () => {
@@ -1496,10 +1516,14 @@
         requestCurrentLocation(true);
       });
 
+      aiTagBtn.addEventListener("click", () => {
+        activatePersonalizationMode();
+      });
+
       setUI(UI_STATE.ROUTE);
       clearCurrentRoute();
       requestCurrentLocation(true);
-      showToast("현재 위치를 불러왔어요. 목적지를 입력해 내비를 시작하세요.", 2600);
+      showToast("현재 위치를 불러왔어요. 목적지 검색 후 우측 AI 버튼으로 태깅을 시작하세요.", 2800);
     </script>
   </body>
 </html>
