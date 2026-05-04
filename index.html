@@ -1107,7 +1107,7 @@
           </div>
         </section>
       </div>
-      <nav class="bottom-nav">
+      <nav class="bottom-nav hidden">
         <div class="bottom-nav-grid">
           <button class="nav-item"><span class="emo">🏠</span>홈</button>
           <button class="nav-item" id="myTagNavBtn"><span class="emo">📍</span>나의태깅</button>
@@ -1266,7 +1266,7 @@
         const brushActive = stateName === UI_STATE.ROUTE && state.personalizationMode;
         brushLayer.classList.toggle("hidden", !brushActive);
         brushLayer.classList.toggle("active", brushActive);
-        bottomNav.classList.toggle("hidden", stateName !== UI_STATE.ROUTE);
+        bottomNav.classList.add("hidden");
       }
 
       function toLngLat(latlng) {
@@ -1679,7 +1679,6 @@
           setUI(UI_STATE.ROUTE);
           setRouteStage(true);
           searchOverlay.classList.add("hidden");
-          showToast("경로를 만들었습니다. 좌측 AI 버튼으로 구간 태깅 모드를 켤 수 있어요.", 2400);
         } catch (e) {
           showToast("목적지 검색 또는 경로 생성에 실패했습니다.", 2400);
         }
