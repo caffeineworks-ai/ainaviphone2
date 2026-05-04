@@ -127,12 +127,31 @@
           linear-gradient(#fff, #fff) padding-box,
           linear-gradient(92deg, #d657ff 0%, #3bc3ff 100%) border-box;
         border: 2px solid transparent;
-        display: flex;
+        display: grid;
+        grid-template-columns: 30px 1fr 28px 28px;
+        gap: 10px;
         align-items: center;
         padding: 0 16px;
         font-size: 16px;
         color: #a0a8b5;
         font-weight: 700;
+      }
+
+      .simple-search input {
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 16px;
+        color: #171c24;
+        font-weight: 700;
+      }
+
+      .simple-icon-btn {
+        border: none;
+        background: transparent;
+        font-size: 18px;
+        color: #788291;
+        padding: 0;
       }
 
       .search-overlay {
@@ -911,7 +930,12 @@
 
       <div class="top-wrap">
         <section class="route-bar">
-          <button class="simple-search" id="openSearchBtn">장소, 주소 검색</button>
+          <div class="simple-search">
+            <span style="font-size:18px; color:#1e232b;">‹</span>
+            <input id="simpleSearchInput" placeholder="장소, 주소 검색" />
+            <button class="simple-icon-btn hidden" id="simpleClearBtn" aria-label="입력 지우기">✕</button>
+            <button class="simple-icon-btn hidden" id="simpleSearchBtn" aria-label="검색">⌕</button>
+          </div>
           <div class="search-row hidden" id="detailedSearchRow">
             <button class="icon-btn" aria-label="뒤로가기">‹</button>
             <div class="search-stack">
@@ -932,7 +956,6 @@
         </section>
       </div>
       <section class="search-overlay hidden" id="searchOverlay">
-        <input id="quickSearchInput" class="search-field" style="width:100%; border:none;" placeholder="목적지 검색" />
         <div class="recent-title">최근 기록</div>
         <button class="recent-item" data-place="국민대학교">국민대학교</button>
         <button class="recent-item" data-place="레미안신반포리오센트아파트">레미안신반포리오센트아파트</button>
@@ -1094,9 +1117,10 @@
       }).addTo(map);
 
       const app = document.getElementById("app");
-      const openSearchBtn = document.getElementById("openSearchBtn");
+      const simpleSearchInput = document.getElementById("simpleSearchInput");
+      const simpleClearBtn = document.getElementById("simpleClearBtn");
+      const simpleSearchBtn = document.getElementById("simpleSearchBtn");
       const searchOverlay = document.getElementById("searchOverlay");
-      const quickSearchInput = document.getElementById("quickSearchInput");
       const detailedSearchRow = document.getElementById("detailedSearchRow");
       const transportTabs = document.getElementById("transportTabs");
       const bottomArea = document.querySelector(".bottom-area");
@@ -1148,10 +1172,16 @@
       let conditionExampleTimer = null;
 
       function setRouteStage(hasRoute) {
-        openSearchBtn.classList.toggle("hidden", hasRoute);
+        simpleSearchInput.closest(".simple-search").classList.toggle("hidden", hasRoute);
         detailedSearchRow.classList.toggle("hidden", !hasRoute);
         transportTabs.classList.toggle("hidden", !hasRoute);
         bottomArea.classList.toggle("hidden", !hasRoute);
+      }
+
+      function syncSimpleSearchActions() {
+        const hasText = simpleSearchInput.value.trim().length > 0;
+        simpleClearBtn.classList.toggle("hidden", !hasText);
+        simpleSearchBtn.classList.toggle("hidden", !hasText);
       }
 
       function showToast(message, time = 1800) {
@@ -1745,20 +1775,33 @@
       });
 
       searchBtn.addEventListener("click", buildRouteFromSearch);
-      openSearchBtn.addEventListener("click", () => {
+      simpleSearchInput.addEventListener("focus", () => {
         searchOverlay.classList.remove("hidden");
-        quickSearchInput.focus();
       });
-      quickSearchInput.addEventListener("keydown", (event) => {
+      simpleSearchInput.addEventListener("input", () => {
+        syncSimpleSearchActions();
+        searchOverlay.classList.remove("hidden");
+      });
+      simpleSearchInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
-          destinationInput.value = quickSearchInput.value.trim();
+          destinationInput.value = simpleSearchInput.value.trim();
           buildRouteFromSearch();
         }
+      });
+      simpleSearchBtn.addEventListener("click", () => {
+        destinationInput.value = simpleSearchInput.value.trim();
+        buildRouteFromSearch();
+      });
+      simpleClearBtn.addEventListener("click", () => {
+        simpleSearchInput.value = "";
+        syncSimpleSearchActions();
+        simpleSearchInput.focus();
       });
       document.querySelectorAll(".recent-item").forEach((btn) => {
         btn.addEventListener("click", () => {
           const place = btn.getAttribute("data-place");
-          quickSearchInput.value = place;
+          simpleSearchInput.value = place;
+          syncSimpleSearchActions();
           destinationInput.value = place;
           buildRouteFromSearch();
         });
@@ -1775,6 +1818,7 @@
       });
 
       setUI(UI_STATE.ROUTE);
+      syncSimpleSearchActions();
       setRouteStage(false);
       cycleConditionExamples();
       updateTagModeUI();
