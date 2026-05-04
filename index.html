@@ -641,10 +641,16 @@
         border-radius: 50%;
         border: none;
         background: radial-gradient(circle at 50% 35%, #ffffff 0%, #edf4ff 40%, #dfeaff 100%);
-        color: var(--brand);
-        font-size: 42px;
         box-shadow: 0 0 0 16px rgba(10, 102, 255, 0.08);
         cursor: pointer;
+        display: grid;
+        place-items: center;
+      }
+
+      .voice-icon {
+        width: 44px;
+        height: 44px;
+        color: #2f6df5;
       }
 
       .dual-actions {
@@ -1055,7 +1061,11 @@
               <h3 class="sheet-title">이 구간을 언제 선호하거나 회피할까요?</h3>
               <p class="sheet-sub">지금 선택한 구간 기준으로, 선호/회피하고 싶은 조건을 말씀해 주세요.</p>
               <div class="voice-zone">
-                <button class="voice-button" id="voiceBtn">🎤</button>
+                <button class="voice-button" id="voiceBtn" aria-label="음성 입력">
+                  <svg class="voice-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="currentColor" d="M12 15a4 4 0 0 0 4-4V5a4 4 0 1 0-8 0v6a4 4 0 0 0 4 4Zm6-4a1 1 0 1 1 2 0 8 8 0 0 1-7 7.94V22h3a1 1 0 1 1 0 2H8a1 1 0 1 1 0-2h3v-3.06A8 8 0 0 1 4 11a1 1 0 1 1 2 0 6 6 0 1 0 12 0Z"/>
+                  </svg>
+                </button>
               </div>
               <div class="textarea-wrap">
                 <textarea id="speechText" placeholder="(예시) 8분 이상 차이 안 나면, 운전하기 편한 성수대교 쪽으로 갈래"></textarea>
