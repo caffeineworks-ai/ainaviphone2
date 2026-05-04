@@ -702,16 +702,18 @@
       }
 
       .tag-pin {
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         border-radius: 50%;
-        background: radial-gradient(circle at 30% 30%, #ffffff, #b8d0ff 38%, #0a66ff 100%);
+        background: linear-gradient(160deg, #ff7ad9 0%, #d85bff 100%);
+        border: 2px solid rgba(255, 255, 255, 0.95);
         color: #fff;
         display: grid;
         place-items: center;
-        font-size: 16px;
-        font-weight: 700;
-        box-shadow: 0 0 0 4px rgba(255,255,255,0.38), 0 10px 20px rgba(10,102,255,0.28);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.01em;
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.32), 0 8px 18px rgba(172, 68, 194, 0.36);
       }
 
       .flag-pin {
@@ -1185,6 +1187,7 @@
       const myTagNavBtn = document.getElementById("myTagNavBtn");
       const tagListSheet = document.getElementById("tagListSheet");
       const tagListBody = document.getElementById("tagListBody");
+      const bottomNav = document.querySelector(".bottom-nav");
       const avoidModeBtn = document.getElementById("avoidModeBtn");
       const preferModeBtn = document.getElementById("preferModeBtn");
 
@@ -1261,6 +1264,7 @@
         const brushActive = stateName === UI_STATE.ROUTE && state.personalizationMode;
         brushLayer.classList.toggle("hidden", !brushActive);
         brushLayer.classList.toggle("active", brushActive);
+        bottomNav.classList.toggle("hidden", stateName !== UI_STATE.ROUTE);
       }
 
       function toLngLat(latlng) {
@@ -1575,7 +1579,7 @@
         const marker = L.marker(midpoint, {
           icon: L.divIcon({
             className: "",
-            html: '<div class="tag-pin">?</div>',
+            html: '<div class="tag-pin">AI</div>',
             iconSize: [32, 32],
             iconAnchor: [16, 16],
           }),
