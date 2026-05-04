@@ -1139,6 +1139,7 @@
         selectionGlowLine: null,
         rerouteLine: null,
         taggedMarkers: [],
+        aiFirstTipShown: false,
         activeIntent: null,
         personalizationMode: false,
         userLocation: null,
@@ -1263,6 +1264,10 @@
         mapTools.classList.toggle("hidden", stateName !== UI_STATE.ROUTE || !state.baseRoute?.length);
         const shouldShowTagButton = stateName === UI_STATE.ROUTE && Boolean(state.baseRoute?.length);
         aiTagBtn.classList.toggle("hidden", !shouldShowTagButton);
+        if (shouldShowTagButton && !state.aiFirstTipShown) {
+          state.aiFirstTipShown = true;
+          showToast("좌측 AI 버튼을 눌러 구간 태깅을 시작해 보세요.", 2600);
+        }
         const brushActive = stateName === UI_STATE.ROUTE && state.personalizationMode;
         brushLayer.classList.toggle("hidden", !brushActive);
         brushLayer.classList.toggle("active", brushActive);
