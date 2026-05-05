@@ -1843,8 +1843,8 @@ function restoreBrushLayerIfNeeded(event) {
       });
 
       document.getElementById("stayRouteBtn").addEventListener("click", () => {
-        setUI(UI_STATE.ROUTE);
         resetSelection();
+        setUI(UI_STATE.ROUTE);        
         map.dragging.enable();
         map.touchZoom.enable();
         speechText.value = "";
@@ -1854,8 +1854,8 @@ function restoreBrushLayerIfNeeded(event) {
 
       document.getElementById("rerouteBtn").addEventListener("click", async () => {
         await applyReroute();
-        setUI(UI_STATE.ROUTE);
         resetSelection();
+        setUI(UI_STATE.ROUTE);        
         map.dragging.enable();
         map.touchZoom.enable();
         speechText.value = "";
