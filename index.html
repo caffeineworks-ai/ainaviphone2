@@ -1846,6 +1846,7 @@ function restoreBrushLayerIfNeeded(event) {
         setUI(UI_STATE.ROUTE);
         resetSelection();
         map.dragging.enable();
+        map.touchZoom.enable();
         speechText.value = "";
         state.activeIntent = null;
         showToast("태깅만 저장하고 기본 경로를 유지합니다.");
@@ -1856,6 +1857,7 @@ function restoreBrushLayerIfNeeded(event) {
         setUI(UI_STATE.ROUTE);
         resetSelection();
         map.dragging.enable();
+        map.touchZoom.enable();
         speechText.value = "";
       });
 
