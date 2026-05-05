@@ -1316,6 +1316,10 @@
         const brushActive = stateName === UI_STATE.ROUTE && state.personalizationMode;
         brushLayer.classList.toggle("hidden", !brushActive);
         brushLayer.classList.toggle("active", brushActive);
+        if (!brushActive) {
+  map.touchZoom.enable();
+  map.dragging.enable();
+}        
         bottomNav.classList.add("hidden");
       }
 
@@ -1390,6 +1394,8 @@
         state.brushLine = null;
         state.correctedArea = null;
         if (!keepMode) state.personalizationMode = false;
+        map.touchZoom.enable();
+        map.dragging.enable();
       }
 
       function describeSelectedSegment(chunk) {
