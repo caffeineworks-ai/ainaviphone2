@@ -1538,42 +1538,44 @@
         showToast("개인화 모드 ON: 지도 위를 문질러 원하는 영역을 그려 주세요.", 2600);
       }
 
-      function startBrush(event) {
-        if (!state.personalizationMode) return;
-        if (event.touches && event.touches.length > 1) {
-          state.pinchPassThrough = true;
-          brushLayer.classList.remove("active");
-          return;
-        }
-        event.preventDefault();
-        const latlng = getBrushLatLng(event);
-        if (!latlng) return;
-        state.isBrushing = true;
-        state.brushLatLngs = [[latlng.lat, latlng.lng]];
-        if (state.brushLine) map.removeLayer(state.brushLine);
-        state.brushLine = L.polyline(state.brushLatLngs, {
-          color: "#8fb7ff",
-          weight: 10,
-          opacity: 0.75,
-          lineCap: "round",
-          lineJoin: "round",
-        }).addTo(map);
-      }
+function startBrush(event) {
+  if (!state.personalizationMode) return;
+  
+  if (event.touches && event.touches.length > 1) {
+    // 핀치: 브러시 레이어를 완전히 비활성화해서 Leaflet에 넘김
+    state.isBrushing = false;
+    brushLayer.style.pointerEvents = 'none';
+    return;
+  }
+  
+  event.preventDefault();
+  const latlng = getBrushLatLng(event);
+  if (!latlng) return;
+  state.isBrushing = true;
+  state.brushLatLngs = [[latlng.lat, latlng.lng]];
+  if (state.brushLine) map.removeLayer(state.brushLine);
+  state.brushLine = L.polyline(state.brushLatLngs, {
+    color: "#8fb7ff", weight: 10, opacity: 0.75,
+    lineCap: "round", lineJoin: "round",
+  }).addTo(map);
+}
 
-      function moveBrush(event) {
-        if (!state.isBrushing) return;
-        if (event.touches && event.touches.length > 1) {
-          state.isBrushing = false;
-          state.pinchPassThrough = true;
-          brushLayer.classList.remove("active");
-          return;
-        }
-        event.preventDefault();
-        const latlng = getBrushLatLng(event);
-        if (!latlng) return;
-        state.brushLatLngs.push([latlng.lat, latlng.lng]);
-        if (state.brushLine) state.brushLine.setLatLngs(state.brushLatLngs);
-      }
+function moveBrush(event) {
+  if (!state.isBrushing) return;
+  
+  if (event.touches && event.touches.length > 1) {
+    // 핀치로 전환: 브러싱 중단하고 넘김
+    state.isBrushing = false;
+    brushLayer.style.pointerEvents = 'none';
+    return;
+  }
+  
+  event.preventDefault();
+  const latlng = getBrushLatLng(event);
+  if (!latlng) return;
+  state.brushLatLngs.push([latlng.lat, latlng.lng]);
+  if (state.brushLine) state.brushLine.setLatLngs(state.brushLatLngs);
+}
 
       function endBrush() {
         if (!state.isBrushing) return;
@@ -1581,14 +1583,13 @@
         highlightSelectionFromBrush();
       }
 
-      function restoreBrushLayerIfNeeded(event) {
-        if (!state.personalizationMode) return;
-        const touches = event.touches ? event.touches.length : 0;
-        if (touches < 2) {
-          state.pinchPassThrough = false;
-          brushLayer.classList.add("active");
-        }
-      }
+function restoreBrushLayerIfNeeded(event) {
+  if (!state.personalizationMode) return;
+  const touches = event.touches ? event.touches.length : 0;
+  if (touches < 2) {
+    brushLayer.style.pointerEvents = 'auto';
+  }
+}
 
       brushLayer.addEventListener("touchstart", startBrush, { passive: false });
       brushLayer.addEventListener("touchmove", moveBrush, { passive: false });
